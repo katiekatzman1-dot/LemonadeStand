@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 
 const FONT_IMPORT_URL =
   "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@500&display=swap";
@@ -78,6 +79,84 @@ const STALLS = [
     accent: PALETTE.kraftDark,
   },
 ];
+
+function HomePage({ onEnter }) {
+  return (
+    <div
+      style={{
+        minHeight: "calc(100vh - 130px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "60px 24px",
+      }}
+    >
+      <div style={{ maxWidth: 640, textAlign: "center" }}>
+        <div style={{ fontSize: 46, marginBottom: 18 }}>🍋</div>
+        <h1
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 700,
+            fontSize: "clamp(32px, 5.5vw, 52px)",
+            color: PALETTE.ink,
+            margin: "0 0 18px",
+            lineHeight: 1.08,
+          }}
+        >
+          Every kid has a stand.
+          <br />
+          This is where it lives online.
+        </h1>
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 16.5,
+            lineHeight: 1.65,
+            color: "#5A5340",
+            margin: "0 auto 14px",
+            maxWidth: 480,
+          }}
+        >
+          Lemonade Stand is a marketplace built for kids selling things they
+          actually made — lemonade, bracelets, birdhouses, whatever they're
+          proud of. Families list what they're selling, neighbors buy
+          directly from them, and every sale belongs to the kid who made it.
+        </p>
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 16.5,
+            lineHeight: 1.65,
+            color: "#5A5340",
+            margin: "0 auto 34px",
+            maxWidth: 480,
+          }}
+        >
+          There's also a private ledger for tracking what materials cost,
+          what to charge, and what's actually left over — a small,
+          hands-on way to learn what running a stand really means.
+        </p>
+        <button
+          onClick={onEnter}
+          style={{
+            background: PALETTE.ink,
+            color: PALETTE.paper,
+            border: "none",
+            padding: "14px 30px",
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 700,
+            fontSize: 15,
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = PALETTE.lemonDeep)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = PALETTE.ink)}
+        >
+          Visit the marketplace
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ZigTop({ color }) {
   return (
@@ -298,56 +377,171 @@ function Marketplace() {
   );
 }
 
-function GateScreen({ onSubscribe }) {
+function AuthGate() {
+  const [mode, setMode] = useState("signin"); // signin | signup
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const inputStyle = {
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 14,
+    padding: "10px 12px",
+    border: `1.5px solid ${PALETTE.kraft}`,
+    background: PALETTE.paper,
+    color: PALETTE.ink,
+    width: "100%",
+    boxSizing: "border-box",
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    if (mode === "signup") {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage(
+          "Check your email for a confirmation link, then come back and sign in."
+        );
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) setMessage(error.message);
+    }
+    setBusy(false);
+  };
+
   return (
     <div
       style={{
-        maxWidth: 460,
+        maxWidth: 400,
         margin: "70px auto",
         padding: "36px 32px",
         background: PALETTE.card,
         border: `2px solid ${PALETTE.ink}`,
-        textAlign: "center",
       }}
     >
-      <div style={{ fontSize: 30, marginBottom: 10 }}>📒</div>
+      <div style={{ fontSize: 30, marginBottom: 10, textAlign: "center" }}>
+        📒
+      </div>
       <h2
         style={{
           fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 700,
-          fontSize: 24,
+          fontSize: 22,
           color: PALETTE.ink,
-          margin: "0 0 10px",
+          margin: "0 0 8px",
+          textAlign: "center",
         }}
       >
-        The Stand Ledger is a subscriber tool
+        {mode === "signup" ? "Create your ledger account" : "Sign in to your ledger"}
       </h2>
       <p
         style={{
           fontFamily: "'DM Sans', sans-serif",
-          fontSize: 14.5,
-          lineHeight: 1.6,
+          fontSize: 13.5,
+          lineHeight: 1.5,
           color: "#5A5340",
-          margin: "0 0 24px",
+          margin: "0 0 22px",
+          textAlign: "center",
         }}
       >
-        Track what materials cost, what you charge, and what you actually
-        take home — one row per product. This demo unlocks it for free.
+        Your ledger is private to your family and saved to your account, so
+        it's there whichever device you sign in from.
       </p>
+
+      <form
+        onSubmit={submit}
+        style={{ display: "flex", flexDirection: "column", gap: 12 }}
+      >
+        <div>
+          <label style={{ fontSize: 11.5, color: "#5A5340", fontFamily: "'DM Sans', sans-serif" }}>
+            Email
+          </label>
+          <input
+            type="email"
+            required
+            style={inputStyle}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: 11.5, color: "#5A5340", fontFamily: "'DM Sans', sans-serif" }}>
+            Password
+          </label>
+          <input
+            type="password"
+            required
+            minLength={6}
+            style={inputStyle}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={busy}
+          style={{
+            background: PALETTE.leafDeep,
+            color: PALETTE.paper,
+            border: "none",
+            padding: "12px 26px",
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 700,
+            fontSize: 14,
+            cursor: busy ? "default" : "pointer",
+            opacity: busy ? 0.6 : 1,
+            marginTop: 6,
+          }}
+        >
+          {busy ? "One moment…" : mode === "signup" ? "Create account" : "Sign in"}
+        </button>
+      </form>
+
+      {message && (
+        <p
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 12.5,
+            color: PALETTE.berry,
+            marginTop: 14,
+            textAlign: "center",
+          }}
+        >
+          {message}
+        </p>
+      )}
+
       <button
-        onClick={onSubscribe}
+        onClick={() => {
+          setMode(mode === "signup" ? "signin" : "signup");
+          setMessage(null);
+        }}
         style={{
-          background: PALETTE.leafDeep,
-          color: PALETTE.paper,
+          background: "none",
           border: "none",
-          padding: "12px 26px",
+          color: PALETTE.kraftDark,
           fontFamily: "'DM Sans', sans-serif",
-          fontWeight: 700,
-          fontSize: 14,
+          fontSize: 12.5,
+          textDecoration: "underline",
           cursor: "pointer",
+          display: "block",
+          margin: "16px auto 0",
         }}
       >
-        Unlock my ledger
+        {mode === "signup"
+          ? "Already have an account? Sign in"
+          : "New here? Create an account"}
       </button>
     </div>
   );
@@ -357,13 +551,17 @@ function money(n) {
   return `$${n.toFixed(2)}`;
 }
 
-const LEDGER_KEY = "ledger:rows";
-const DEFAULT_ROWS = [
-  { id: 1, product: "Marble Lemonade", materialCost: 0.6, price: 3, sold: 14 },
-  { id: 2, product: "Painted Rocks", materialCost: 0.4, price: 2, sold: 22 },
-];
+function rowFromDb(r) {
+  return {
+    id: r.id,
+    product: r.product,
+    materialCost: r.material_cost,
+    price: r.price,
+    sold: r.sold,
+  };
+}
 
-function Portal() {
+function Portal({ user }) {
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [form, setForm] = useState({
@@ -376,31 +574,22 @@ function Portal() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const raw = window.localStorage.getItem(LEDGER_KEY);
-        if (cancelled) return;
-        const saved = raw ? JSON.parse(raw) : DEFAULT_ROWS;
-        setRows(saved);
-        setStatus("ready");
-      } catch {
-        if (cancelled) return;
-        setRows(DEFAULT_ROWS);
-        setStatus("ready");
+      const { data, error } = await supabase
+        .from("ledger_rows")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        setStatus("error");
+        return;
       }
+      setRows(data.map(rowFromDb));
+      setStatus("ready");
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const persist = async (next) => {
-    setRows(next);
-    try {
-      window.localStorage.setItem(LEDGER_KEY, JSON.stringify(next));
-    } catch {
-      setStatus("error");
-    }
-  };
+  }, [user.id]);
 
   const totals = useMemo(() => {
     return rows.reduce(
@@ -416,24 +605,36 @@ function Portal() {
     );
   }, [rows]);
 
-  const addRow = () => {
+  const addRow = async () => {
     if (!form.product || form.materialCost === "" || form.price === "" || form.sold === "")
       return;
-    const next = [
-      ...rows,
-      {
-        id: Date.now(),
+    const { data, error } = await supabase
+      .from("ledger_rows")
+      .insert({
+        user_id: user.id,
         product: form.product,
-        materialCost: parseFloat(form.materialCost) || 0,
+        material_cost: parseFloat(form.materialCost) || 0,
         price: parseFloat(form.price) || 0,
         sold: parseInt(form.sold) || 0,
-      },
-    ];
-    persist(next);
+      })
+      .select()
+      .single();
+    if (error) {
+      setStatus("error");
+      return;
+    }
+    setRows((r) => [...r, rowFromDb(data)]);
     setForm({ product: "", materialCost: "", price: "", sold: "" });
   };
 
-  const removeRow = (id) => persist(rows.filter((row) => row.id !== id));
+  const removeRow = async (id) => {
+    const { error } = await supabase.from("ledger_rows").delete().eq("id", id);
+    if (error) {
+      setStatus("error");
+      return;
+    }
+    setRows((r) => r.filter((row) => row.id !== id));
+  };
 
   const inputStyle = {
     fontFamily: "'DM Sans', sans-serif",
@@ -725,16 +926,24 @@ function Portal() {
         }}
       >
         {status === "error"
-          ? "Couldn't save your last change — it may not survive a reload."
-          : "Your ledger saves automatically and will be here next time."}
+          ? "Couldn't reach your ledger just now — try again in a moment."
+          : "Saved to your account — this ledger follows you to any device you sign in on."}
       </p>
     </div>
   );
 }
 
 export default function LemonadeStand() {
-  const [view, setView] = useState("market");
-  const [subscribed, setSubscribed] = useState(false);
+  const [view, setView] = useState("home");
+  const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   return (
     <div
@@ -762,6 +971,7 @@ export default function LemonadeStand() {
         }}
       >
         <div
+          onClick={() => setView("home")}
           style={{
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 700,
@@ -770,12 +980,14 @@ export default function LemonadeStand() {
             display: "flex",
             alignItems: "center",
             gap: 8,
+            cursor: "pointer",
           }}
         >
           <span>🍋</span> Lemonade Stand
         </div>
-        <nav style={{ display: "flex", gap: 6 }}>
+        <nav style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {[
+            { key: "home", label: "Home" },
             { key: "market", label: "Marketplace" },
             { key: "portal", label: "My Stand Portal" },
           ].map((t) => (
@@ -796,15 +1008,44 @@ export default function LemonadeStand() {
               {t.label}
             </button>
           ))}
+          {session && (
+            <button
+              onClick={() => supabase.auth.signOut()}
+              style={{
+                background: "none",
+                border: "none",
+                color: PALETTE.kraftDark,
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 12.5,
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              Sign out
+            </button>
+          )}
         </nav>
       </header>
 
-      {view === "market" ? (
+      {view === "home" ? (
+        <HomePage onEnter={() => setView("market")} />
+      ) : view === "market" ? (
         <Marketplace />
-      ) : subscribed ? (
-        <Portal />
+      ) : session === undefined ? (
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: 60,
+            fontFamily: "'DM Sans', sans-serif",
+            color: "#8A806A",
+          }}
+        >
+          Loading…
+        </p>
+      ) : session ? (
+        <Portal user={session.user} />
       ) : (
-        <GateScreen onSubscribe={() => setSubscribed(true)} />
+        <AuthGate />
       )}
 
       <footer
