@@ -377,6 +377,77 @@ function Marketplace() {
   );
 }
 
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/5kQ28sccCgbW67ibI98k800";
+
+function SubscribeScreen({ userEmail }) {
+  return (
+    <div
+      style={{
+        maxWidth: 440,
+        margin: "70px auto",
+        padding: "36px 32px",
+        background: PALETTE.card,
+        border: `2px solid ${PALETTE.ink}`,
+        textAlign: "center",
+      }}
+    >
+      <div style={{ fontSize: 30, marginBottom: 10 }}>📒</div>
+      <h2
+        style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 700,
+          fontSize: 24,
+          color: PALETTE.ink,
+          margin: "0 0 10px",
+        }}
+      >
+        One last step to unlock your ledger
+      </h2>
+      <p
+        style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 14.5,
+          lineHeight: 1.6,
+          color: "#5A5340",
+          margin: "0 0 6px",
+        }}
+      >
+        You're signed in{userEmail ? ` as ${userEmail}` : ""}. The Stand
+        Ledger is a $5.99/month subscription — track materials, pricing, and
+        profit for every product your family sells.
+      </p>
+      <p
+        style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 12.5,
+          color: PALETTE.kraftDark,
+          margin: "0 0 22px",
+        }}
+      >
+        You'll be taken to Stripe's secure checkout, then brought right back
+        here.
+      </p>
+      
+        href={STRIPE_PAYMENT_LINK}
+        style={{
+          display: "inline-block",
+          background: PALETTE.leafDeep,
+          color: PALETTE.paper,
+          border: "none",
+          padding: "12px 28px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontWeight: 700,
+          fontSize: 14,
+          textDecoration: "none",
+          cursor: "pointer",
+        }}
+      >
+        Subscribe for $5.99/month
+      </a>
+    </div>
+  );
+}
+
 function AuthGate() {
   const [mode, setMode] = useState("signin"); // signin | signup
   const [email, setEmail] = useState("");
@@ -936,6 +1007,7 @@ function Portal({ user }) {
 export default function LemonadeStand() {
   const [view, setView] = useState("home");
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
+  const [subscribed, setSubscribed] = useState(false);
   const autoNavigated = useRef(false);
 
   useEffect(() => {
@@ -945,7 +1017,22 @@ export default function LemonadeStand() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
-   useEffect(() => { if (session && !autoNavigated.current) { setView("portal"); autoNavigated.current = true; } }, [session]);
+
+  useEffect(() => {
+    if (session && !autoNavigated.current) {
+      setView("portal");
+      autoNavigated.current = true;
+    }
+  }, [session]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscribed") === "true") {
+      window.localStorage.setItem("ledger:subscribed", "true");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    setSubscribed(window.localStorage.getItem("ledger:subscribed") === "true");
+  }, []);
 
   return (
     <div
@@ -1045,7 +1132,11 @@ export default function LemonadeStand() {
           Loading…
         </p>
       ) : session ? (
-        <Portal user={session.user} />
+        subscribed ? (
+          <Portal user={session.user} />
+        ) : (
+          <SubscribeScreen userEmail={session.user.email} />
+        )
       ) : (
         <AuthGate />
       )}
