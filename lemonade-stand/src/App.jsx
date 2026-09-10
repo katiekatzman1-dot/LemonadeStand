@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "./supabaseClient";
 
 const FONT_IMPORT_URL =
@@ -936,6 +936,7 @@ function Portal({ user }) {
 export default function LemonadeStand() {
   const [view, setView] = useState("home");
   const [session, setSession] = useState(undefined); // undefined = loading, null = signed out
+  const autoNavigated = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -944,6 +945,7 @@ export default function LemonadeStand() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+   useEffect(() => { if (session && !autoNavigated.current) { setView("portal"); autoNavigated.current = true; } }, [session]);
 
   return (
     <div
